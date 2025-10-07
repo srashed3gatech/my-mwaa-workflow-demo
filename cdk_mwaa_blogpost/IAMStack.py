@@ -1,14 +1,16 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-from aws_cdk import (core,
+from aws_cdk import (Stack,
+                     CfnOutput,
                      aws_iam as iam
                      )
+from constructs import Construct
 
 
-class IAMStack(core.Stack):
+class IAMStack(Stack):
 
-    def __init__(self, scope: core.Construct, construct_id: str, s3_buckets, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, s3_buckets, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         emr_s3_statement_1 = iam.PolicyStatement(sid='AllowEMRS3',
@@ -259,14 +261,14 @@ class IAMStack(core.Stack):
                                                 document=mwaa_airflow_policy_document,
                                                 )
 
-        core.CfnOutput(self,
+        CfnOutput(self,
                        id='emr_jobflow_role',
                        value=emr_ec2_role.role_name)
 
-        core.CfnOutput(self,
+        CfnOutput(self,
                        id='emr_service_role',
                        value=emr_role.role_name)
 
-        core.CfnOutput(self,
+        CfnOutput(self,
                        id='mwaa_policy',
                        value=mwaa_airflow_policy.managed_policy_name)

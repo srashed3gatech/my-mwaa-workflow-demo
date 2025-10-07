@@ -19,13 +19,8 @@ setuptools.setup(
     packages=setuptools.find_packages(where="cdk_mwaa_blogpost"),
 
     install_requires=[
-        "aws-cdk.core",
-        "aws-cdk.aws_ec2",
-        "aws-cdk.aws_s3",
-        "aws-cdk.aws_s3_assets",
-        "aws_cdk.aws_s3_deployment",
-        "aws_cdk.aws_glue",
-        "aws_cdk.aws_iam"
+        "aws-cdk-lib>=2.0.0",
+        "constructs>=10.0.0",
     ],
 
     python_requires=">=3.6",

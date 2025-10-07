@@ -1,14 +1,16 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-from aws_cdk import (core,
+from aws_cdk import (Stack,
+                     CfnOutput,
                      aws_ec2 as ec2
                      )
+from constructs import Construct
 
 
-class VPCStack(core.Stack):
+class VPCStack(Stack):
 
-    def __init__(self, scope: core.Construct, construct_id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         public_subnet = ec2.SubnetConfiguration(name='mwaa_public_subnet',
@@ -17,12 +19,12 @@ class VPCStack(core.Stack):
                                                 )
 
         mwaa_sbnet = ec2.SubnetConfiguration(name='mwaa_dag_subnet',
-                                             subnet_type=ec2.SubnetType.PRIVATE,
+                                             subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS,
                                              cidr_mask=24
                                              )
 
         emr_subnet = ec2.SubnetConfiguration(name='mwaa_emr_subnet',
-                                             subnet_type=ec2.SubnetType.PRIVATE,
+                                             subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS,
                                              cidr_mask=24
                                              )
 
@@ -36,10 +38,10 @@ class VPCStack(core.Stack):
                            )
 
         # Outputs
-        core.CfnOutput(self, 'vpc_id', value=vpc_mwaa.vpc_id)
-        core.CfnOutput(self, 'emr_subnet_id',
+        CfnOutput(self, 'vpc_id', value=vpc_mwaa.vpc_id)
+        CfnOutput(self, 'emr_subnet_id',
                        value=vpc_mwaa.select_subnets(subnet_group_name='mwaa_emr_subnet').subnet_ids[0])
-        core.CfnOutput(self, 'mwaa_subnets_id_1',
+        CfnOutput(self, 'mwaa_subnets_id_1',
                        value=vpc_mwaa.select_subnets(subnet_group_name='mwaa_dag_subnet').subnet_ids[0])
-        core.CfnOutput(self, 'mwaa_subnets_id_2',
+        CfnOutput(self, 'mwaa_subnets_id_2',
                        value=vpc_mwaa.select_subnets(subnet_group_name='mwaa_dag_subnet').subnet_ids[1])
