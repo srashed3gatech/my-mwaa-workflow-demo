@@ -49,7 +49,7 @@ class DataLakeStack(Stack):
         glue_crawler_s3_target_name = bucket_constructs['datalake_processed'].bucket_name
         glue_crawler_s3_target_arn = bucket_constructs['datalake_processed'].bucket_arn
 
-        statement = iam.PolicyStatement(actions=["s3:GetObject", "s3:PutObject"],
+        statement = iam.PolicyStatement(actions=["s3:GetObject", "s3:PutObject", "s3:ListBucket"],
                                         resources=[glue_crawler_s3_target_arn,
                                                    f'{glue_crawler_s3_target_arn}/*']
                                         )
@@ -59,7 +59,10 @@ class DataLakeStack(Stack):
         glue_role = iam.Role(self, id='AWSGlueServiceRole-mwaa-demo-crawler',
                      role_name='AWSGlueServiceRole-mwaa-demo-crawler',
                      inline_policies={'write_to_s3': write_to_s3_policy},  # Pass as dictionary instead of list
-                     assumed_by=iam.ServicePrincipal('glue.amazonaws.com'))
+                     assumed_by=iam.ServicePrincipal('glue.amazonaws.com'),
+                     managed_policies=[
+                         iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSGlueServiceRole')
+                     ])
 
         # https://github.com/aws/aws-cdk/issues/13242
         glue_crawler = glue.CfnCrawler(self, id='glue_crawler_mwaa',

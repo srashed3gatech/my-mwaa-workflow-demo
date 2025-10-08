@@ -161,6 +161,18 @@ class IAMStack(Stack):
         emr_s3_policy.attach_to_role(emr_role)
         emr_s3_policy.attach_to_role(emr_ec2_role)
 
+        # Create Glue service role for crawler operations
+        glue_crawler_role = iam.Role(self, id='GlueCrawlerRole_MWAA',
+                                    role_name='GlueCrawlerRole_MWAA',
+                                    assumed_by=iam.ServicePrincipal('glue.amazonaws.com'),
+                                    managed_policies=[
+                                        iam.ManagedPolicy.from_aws_managed_policy_name(
+                                            'service-role/AWSGlueServiceRole')]
+                                    )
+
+        # Attach S3 permissions to Glue crawler role
+        emr_s3_policy.attach_to_role(glue_crawler_role)
+
         # Create EMR service-linked role for cleanup operations
         # This prevents the VALIDATION_ERROR that occurs when the role doesn't exist
         emr_cleanup_role_provider = cr.AwsCustomResource(
@@ -245,6 +257,7 @@ class IAMStack(Stack):
         mwaa_glue_statement_2 = iam.PolicyStatement(sid='AllowMWAAGlueDatabase',
                                                     effect=iam.Effect.ALLOW,
                                                     actions=[
+                                                        "glue:GetDatabase",
                                                         "glue:GetPartition",
                                                         "glue:GetTables",
                                                         "glue:GetPartitions",
@@ -310,3 +323,7 @@ class IAMStack(Stack):
         CfnOutput(self,
                        id='mwaa_policy',
                        value=mwaa_airflow_policy.managed_policy_name)
+
+        CfnOutput(self,
+                       id='glue_crawler_role',
+                       value=glue_crawler_role.role_arn)

@@ -3,7 +3,7 @@
 
 import time
 from airflow.models import BaseOperator
-from airflow.providers.amazon.aws.hooks.base_aws import AwsBaseHook
+from airflow.providers.amazon.aws.hooks.glue import GlueJobHook
 
 
 class GlueTriggerCrawlerOperator(BaseOperator):
@@ -38,8 +38,8 @@ class GlueTriggerCrawlerOperator(BaseOperator):
         self._max_wait_time = max_wait_time
 
     def execute(self, context):
-        hook = AwsBaseHook(aws_conn_id=self._aws_conn_id, region_name=self._region_name)
-        glue_client = hook.get_client_type("glue")
+        hook = GlueJobHook(aws_conn_id=self._aws_conn_id, region_name=self._region_name)
+        glue_client = hook.get_conn()
 
         self.log.info("Triggering crawler")
         response = glue_client.start_crawler(Name=self._crawler_name)
