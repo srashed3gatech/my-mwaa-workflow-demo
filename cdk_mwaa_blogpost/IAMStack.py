@@ -3,7 +3,9 @@
 
 from aws_cdk import (Stack,
                      CfnOutput,
-                     aws_iam as iam
+                     aws_iam as iam,
+                     CustomResource,
+                     custom_resources as cr
                      )
 from constructs import Construct
 
@@ -159,6 +161,39 @@ class IAMStack(Stack):
         emr_s3_policy.attach_to_role(emr_role)
         emr_s3_policy.attach_to_role(emr_ec2_role)
 
+        # Create EMR service-linked role for cleanup operations
+        # This prevents the VALIDATION_ERROR that occurs when the role doesn't exist
+        emr_cleanup_role_provider = cr.AwsCustomResource(
+            self, 
+            'EMRCleanupServiceLinkedRole',
+            on_create=cr.AwsSdkCall(
+                service='IAM',
+                action='createServiceLinkedRole',
+                parameters={
+                    'AWSServiceName': 'elasticmapreduce.amazonaws.com'
+                },
+                physical_resource_id=cr.PhysicalResourceId.of('EMRCleanupServiceLinkedRole')
+            ),
+            on_delete=cr.AwsSdkCall(
+                service='IAM',
+                action='deleteServiceLinkedRole',
+                parameters={
+                    'RoleName': 'AWSServiceRoleForEMRCleanup'
+                }
+            ),
+            policy=cr.AwsCustomResourcePolicy.from_statements([
+                iam.PolicyStatement(
+                    effect=iam.Effect.ALLOW,
+                    actions=[
+                        'iam:CreateServiceLinkedRole',
+                        'iam:DeleteServiceLinkedRole',
+                        'iam:GetServiceLinkedRoleDeletionStatus'
+                    ],
+                    resources=['*']
+                )
+            ])
+        )
+
         mwaa_s3_statement_1 = iam.PolicyStatement(sid='AllowMWAAS31',
                                                   effect=iam.Effect.ALLOW,
                                                   actions=["s3:ListStorageLensConfigurations",
@@ -227,8 +262,11 @@ class IAMStack(Stack):
                                                    effect=iam.Effect.ALLOW,
                                                    actions=[
                                                        "elasticmapreduce:DescribeStep",
+                                                       "elasticmapreduce:DescribeCluster",
                                                        "elasticmapreduce:AddJobFlowSteps",
-                                                       "elasticmapreduce:RunJobFlow"
+                                                       "elasticmapreduce:RunJobFlow",
+                                                       "elasticmapreduce:AddTags",
+                                                       "elasticmapreduce:TerminateJobFlows"
                                                    ],
                                                    resources=["*"]
                                                    )

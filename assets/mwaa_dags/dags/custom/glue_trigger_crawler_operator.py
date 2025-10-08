@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: MIT-0
 
 import time
-from airflow.operators import BaseOperator
-from airflow.contrib.hooks.aws_hook import AwsHook
-from airflow.utils.decorators import apply_defaults
+from airflow.models import BaseOperator
+from airflow.providers.amazon.aws.hooks.base_aws import AwsBaseHook
 
 
 class GlueTriggerCrawlerOperator(BaseOperator):
@@ -24,7 +23,6 @@ class GlueTriggerCrawlerOperator(BaseOperator):
        Any kwargs are passed to the BaseOperator.
    """
 
-    @apply_defaults
     def __init__(
             self,
             aws_conn_id: str,
@@ -40,8 +38,8 @@ class GlueTriggerCrawlerOperator(BaseOperator):
         self._max_wait_time = max_wait_time
 
     def execute(self, context):
-        hook = AwsHook(self._aws_conn_id)
-        glue_client = hook.get_client_type(client_type="glue", region_name=self._region_name)
+        hook = AwsBaseHook(aws_conn_id=self._aws_conn_id, region_name=self._region_name)
+        glue_client = hook.get_client_type("glue")
 
         self.log.info("Triggering crawler")
         response = glue_client.start_crawler(Name=self._crawler_name)
