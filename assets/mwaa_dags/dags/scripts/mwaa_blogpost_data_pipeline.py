@@ -24,9 +24,6 @@ default_args = {
     "owner": "Airflow",
     "start_date": datetime.now() - timedelta(days=1),
     "depends_on_past": False,
-    "email_on_failure": False,
-    "email_on_retry": False,
-    "email": "youremail@host.com",
     "retries": 1
 }
 

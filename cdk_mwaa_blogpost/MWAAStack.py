@@ -174,7 +174,7 @@ class MWAAStack(Stack):
             name='mwaa-demo-environment',
             
             # Airflow configuration
-            airflow_version='2.8.1',
+            airflow_version='3.0.6',
             
             # S3 configuration
             source_bucket_arn=self.s3_buckets['mwaa_config'].bucket_arn,

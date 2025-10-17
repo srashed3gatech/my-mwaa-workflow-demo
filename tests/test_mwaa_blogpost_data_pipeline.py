@@ -112,9 +112,12 @@ class TestMWAABlogpostDataPipeline(unittest.TestCase):
         self.assertEqual(default_args['owner'], 'Airflow')
         self.assertIsInstance(default_args['start_date'], datetime)
         self.assertFalse(default_args['depends_on_past'])
-        self.assertFalse(default_args['email_on_failure'])
-        self.assertFalse(default_args['email_on_retry'])
         self.assertEqual(default_args['retries'], 1)
+        
+        # Verify email settings are NOT present (removed for Airflow 3.x compatibility)
+        self.assertNotIn('email_on_failure', default_args)
+        self.assertNotIn('email_on_retry', default_args)
+        self.assertNotIn('email', default_args)
         print("✅ Default args validation successful")
     
     @patch('requests.get')
