@@ -6,8 +6,7 @@ from aws_cdk import (
     CfnOutput,
     aws_mwaa as mwaa,
     aws_iam as iam,
-    aws_ec2 as ec2,
-    Duration
+    aws_ec2 as ec2
 )
 from constructs import Construct
 
@@ -63,10 +62,7 @@ class MWAAStack(Stack):
             assumed_by=iam.CompositePrincipal(
                 iam.ServicePrincipal('airflow-env.amazonaws.com'),
                 iam.ServicePrincipal('airflow.amazonaws.com')
-            ),
-            managed_policies=[
-                iam.ManagedPolicy.from_aws_managed_policy_name('AmazonMWAAServiceRolePolicy')
-            ]
+            )
         )
 
         # Add S3 permissions for MWAA config bucket
@@ -99,16 +95,39 @@ class MWAAStack(Stack):
             resources=[f'arn:aws:logs:{self.region}:{self.account}:log-group:airflow-*']
         )
 
-        # Try to attach the existing MWAA policy from IAM stack
+        # Add core MWAA permissions
+        mwaa_core_policy = iam.PolicyStatement(
+            effect=iam.Effect.ALLOW,
+            actions=[
+                'airflow:PublishMetrics',
+                'ec2:DescribeNetworkInterfaces',
+                'ec2:DescribeSecurityGroups',
+                'ec2:DescribeSubnets',
+                'ec2:DescribeVpcs',
+                'ec2:CreateNetworkInterface',
+                'ec2:AttachNetworkInterface',
+                'ec2:DetachNetworkInterface',
+                'ec2:DeleteNetworkInterface',
+                'ec2:DescribeNetworkInterfaceAttribute',
+                'ec2:ModifyNetworkInterfaceAttribute'
+            ],
+            resources=['*']
+        )
+
+        # Add all required policies to the role
+        mwaa_role.add_to_policy(mwaa_s3_policy)
+        mwaa_role.add_to_policy(logs_policy)
+        mwaa_role.add_to_policy(mwaa_core_policy)
+        
+        # Try to attach the existing MWAA policy from IAM stack if available
         try:
             existing_policy = iam.ManagedPolicy.from_managed_policy_name(
                 self, 'ExistingMWAAPolicy', 'mwaa_airflow_policy'
             )
             mwaa_role.add_managed_policy(existing_policy)
-        except:
-            # If policy doesn't exist yet, create inline policies
-            mwaa_role.add_to_policy(mwaa_s3_policy)
-            mwaa_role.add_to_policy(logs_policy)
+        except Exception:
+            # IAM stack policy not available, using inline policies only
+            pass
 
         return mwaa_role
 

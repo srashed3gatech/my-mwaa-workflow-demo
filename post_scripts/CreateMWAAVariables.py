@@ -4,7 +4,6 @@
 import json
 import boto3
 import time
-import base64
 from botocore.exceptions import ClientError
 
 cft_client = boto3.client('cloudformation')
@@ -67,7 +66,6 @@ class MWAAVariableLoader:
         if not cli_token:
             return None
         
-        encoded_command = base64.b64encode(command.encode()).decode()
         print(f"Would execute Airflow command: {command}")
         return {"success": True, "command": command}
     

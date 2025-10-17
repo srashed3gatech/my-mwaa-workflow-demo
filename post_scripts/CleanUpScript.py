@@ -72,8 +72,6 @@ def cleanup_mwaa_resources():
     
     # Check for MWAA environment and delete it first
     try:
-        mwaa_client = boto3.client('mwaa')
-        
         # Look for MWAA environment in CloudFormation outputs
         mwaa_stack_name = "cdk-mwaa-environment"
         

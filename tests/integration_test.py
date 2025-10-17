@@ -6,7 +6,7 @@ Tests the complete workflow integration between components
 import boto3
 import json
 import time
-from moto import mock_cloudformation, mock_s3, mock_iam
+from moto import mock_aws
 from unittest.mock import patch, Mock
 
 
@@ -66,6 +66,11 @@ def test_cdk_stack_integration():
         # Create mock dependencies
         app = App()
         vpc_stack = Mock()
+        
+        # Mock the vpc_stack.node.children to be iterable
+        vpc_stack.node = Mock()
+        vpc_stack.node.children = []  # Empty list to avoid iteration issues
+        
         data_lake_stack = Mock()
         iam_stack = Mock()
         
@@ -84,11 +89,20 @@ def test_cdk_stack_integration():
         
         data_lake_stack.buckets = mock_buckets
         
-        # Mock VPC
+        # Mock VPC with proper subnet collections
         vpc_mock = Mock()
-        vpc_mock.private_subnets = [Mock(), Mock()]
-        vpc_mock.private_subnets[0].subnet_id = 'subnet-12345678'
-        vpc_mock.private_subnets[1].subnet_id = 'subnet-87654321'
+        subnet1 = Mock()
+        subnet1.subnet_id = 'subnet-12345678'
+        subnet2 = Mock()
+        subnet2.subnet_id = 'subnet-87654321'
+        
+        # Create proper list-like objects for subnets
+        private_subnets = [subnet1, subnet2]
+        isolated_subnets = []
+        
+        # Mock the subnet properties to return proper lists
+        vpc_mock.private_subnets = private_subnets
+        vpc_mock.isolated_subnets = isolated_subnets
         
         # Mock the VPC lookup
         with patch('aws_cdk.aws_ec2.Vpc.from_lookup', return_value=vpc_mock):

@@ -85,19 +85,7 @@ validate:
 
 validate-dag:
 	@echo "🌊 Validating Airflow DAG files..."
-	@python -c "\
-import sys; \
-sys.path.insert(0, 'assets/mwaa_dags/dags'); \
-from unittest.mock import patch; \
-try: \
-    with patch('airflow.models.Variable.get', return_value='test'): \
-        from scripts.mwaa_blogpost_data_pipeline import dag; \
-        print('✅ DAG import successful'); \
-        print(f'✅ DAG ID: {dag.dag_id}'); \
-        print(f'✅ Task count: {len(dag.tasks)}'); \
-except Exception as e: \
-    print(f'❌ DAG validation failed: {e}'); \
-    sys.exit(1)"
+	@python -c "import sys; sys.path.insert(0, 'assets/mwaa_dags/dags'); from unittest.mock import patch; exec(\"try:\n    with patch('airflow.models.Variable.get', return_value='test'):\n        from scripts.mwaa_blogpost_data_pipeline import dag\n        print('✅ DAG import successful')\n        print(f'✅ DAG ID: {dag.dag_id}')\n        print(f'✅ Task count: {len(dag.tasks)}')\nexcept Exception as e:\n    print(f'❌ DAG validation failed: {e}')\n    sys.exit(1)\")"
 	@echo "✅ DAG validation completed"
 
 # Build Commands
