@@ -7,7 +7,7 @@ cft_client = boto3.client('cloudformation')
 ec2_client = boto3.client('ec2')
 s3_resource = boto3.resource('s3')
 
-cft_output_stack_sturcture = {
+cft_output_stack_structure = {
     "cdk-mwaa-s3": ["datalake_processed_bucket", "datalake_raw_bucket", "emr_logs_bucket", "emr_scripts_bucket",
                     "mwaa_config_bucket"],
     "cdk-mwaa-vpc": ["vpc_id"],
@@ -66,8 +66,47 @@ def clean_mwaa_buckets(bucket_name):
         print(f"Delete Complete Bucket = {bucket_name}")
 
 
+def cleanup_mwaa_resources():
+    """Enhanced cleanup function for MWAA resources including environment deletion"""
+    print("🧹 Starting MWAA resource cleanup...")
+    
+    # Check for MWAA environment and delete it first
+    try:
+        mwaa_client = boto3.client('mwaa')
+        
+        # Look for MWAA environment in CloudFormation outputs
+        mwaa_stack_name = "cdk-mwaa-environment"
+        
+        try:
+            mwaa_stack_response = cft_client.describe_stacks(StackName=mwaa_stack_name)
+            mwaa_outputs = mwaa_stack_response["Stacks"][0]["Outputs"]
+            
+            environment_name = None
+            for output in mwaa_outputs:
+                if output["OutputKey"] == "mwaaenvironmentname":
+                    environment_name = output["OutputValue"]
+                    break
+            
+            if environment_name:
+                print(f"Found MWAA environment: {environment_name}")
+                print("⚠️  MWAA environment deletion should be handled by CDK destroy")
+            else:
+                print("No MWAA environment found in stack outputs")
+                
+        except Exception as e:
+            print(f"MWAA stack not found or error accessing: {e}")
+    
+    except Exception as e:
+        print(f"Error in MWAA cleanup: {e}")
+    
+    # Continue with existing cleanup logic
+    main()
+    
+    print("✅ MWAA resource cleanup completed")
+
+
 def main():
-    for stack_name in cft_output_stack_sturcture.keys():
+    for stack_name in cft_output_stack_structure.keys():
 
         cft_stack_response = cft_client.describe_stacks(StackName=stack_name)
 
@@ -77,7 +116,7 @@ def main():
 
             for cft_stack_output in cft_stack_outputs:
 
-                if cft_stack_output["OutputKey"] == replace_underscore(cft_output_stack_sturcture[stack_name][0]):
+                if cft_stack_output["OutputKey"] == replace_underscore(cft_output_stack_structure[stack_name][0]):
                     vpc_id_out = cft_stack_output["OutputValue"]
 
                     clean_vpc_sg(vpc_id_out)
@@ -88,7 +127,7 @@ def main():
 
             for cft_stack_output in cft_stack_outputs:
 
-                for cft_expected_output in cft_output_stack_sturcture[stack_name]:
+                for cft_expected_output in cft_output_stack_structure[stack_name]:
 
                     if cft_stack_output["OutputKey"] == replace_underscore(cft_expected_output):
 

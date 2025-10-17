@@ -1,82 +1,173 @@
-# Makefile for MWAA Blogpost Data Pipeline
-# Provides convenient commands for testing and deployment
+# MWAA Workflow Demo - Build and Test Makefile
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
 
-.PHONY: help test test-syntax test-imports test-unit install-deps clean deploy
+.PHONY: help install test test-unit test-integration lint validate build deploy clean
 
 # Default target
 help:
-	@echo "MWAA Blogpost Data Pipeline - Available Commands:"
-	@echo "================================================"
-	@echo "make test          - Run all tests (syntax, imports, unit tests)"
-	@echo "make test-syntax   - Run Python syntax validation only"
-	@echo "make test-imports  - Test DAG imports only"
-	@echo "make test-unit     - Run unit tests only"
-	@echo "make install-deps  - Install test dependencies"
-	@echo "make clean         - Clean up temporary files"
-	@echo "make deploy        - Deploy to AWS (after tests pass)"
+	@echo "MWAA Workflow Demo - Build and Test Commands"
+	@echo "============================================="
 	@echo ""
-	@echo "Quick Start:"
-	@echo "1. make install-deps"
-	@echo "2. make test"
-	@echo "3. make deploy (if tests pass)"
+	@echo "Setup Commands:"
+	@echo "  install          Install all dependencies"
+	@echo "  setup-env        Setup Python virtual environment"
+	@echo ""
+	@echo "Testing Commands:"
+	@echo "  test             Run all tests (unit + integration + validation)"
+	@echo "  test-unit        Run unit tests only"
+	@echo "  test-integration Run integration tests only"
+	@echo "  test-dag         Test DAG syntax and imports"
+	@echo ""
+	@echo "Validation Commands:"
+	@echo "  lint             Run code linting (flake8, pylint)"
+	@echo "  validate         Validate CDK templates and configuration"
+	@echo "  validate-dag     Validate Airflow DAG files"
+	@echo ""
+	@echo "Build Commands:"
+	@echo "  build            Build and validate everything (recommended before deploy)"
+	@echo "  synth            Synthesize CDK templates"
+	@echo ""
+	@echo "Deployment Commands:"
+	@echo "  deploy           Deploy all stacks (runs build first)"
+	@echo "  deploy-dry-run   Show what would be deployed"
+	@echo "  destroy          Destroy all stacks"
+	@echo ""
+	@echo "Utility Commands:"
+	@echo "  clean            Clean build artifacts and cache"
+	@echo "  check-deps       Check if all dependencies are installed"
 
-# Install test dependencies
-install-deps:
-	@echo "📦 Installing test dependencies..."
-	pip install apache-airflow>=2.5.0 apache-airflow-providers-amazon>=8.0.0 boto3 requests
+# Setup Commands
+install: check-python
+	@echo "📦 Installing dependencies..."
+	pip install -r requirements.txt
+	@echo "✅ Dependencies installed successfully"
 
-# Run all tests
-test:
-	@echo "🚀 Running comprehensive test suite..."
-	python run_tests.py
+setup-env:
+	@echo "🐍 Setting up Python virtual environment..."
+	python3 -m venv .env
+	@echo "✅ Virtual environment created"
+	@echo "💡 Activate with: source .env/bin/activate"
 
-# Run syntax check only
-test-syntax:
-	@echo "🔍 Running syntax checks..."
-	python -m py_compile assets/mwaa_dags/dags/scripts/mwaa_blogpost_data_pipeline.py
-	python -m py_compile assets/mwaa_dags/dags/custom/glue_trigger_crawler_operator.py
-	@echo "✅ Syntax checks passed"
+# Testing Commands
+test: test-unit test-integration validate-dag
+	@echo "🎉 All tests passed!"
 
-# Test imports only
-test-imports:
-	@echo "📥 Testing DAG imports..."
-	@cd assets/mwaa_dags/dags && python -c "import sys; sys.path.insert(0, '.'); from unittest.mock import patch; patch('airflow.models.Variable.get', return_value='test').start(); from scripts.mwaa_blogpost_data_pipeline import dag; from custom.glue_trigger_crawler_operator import GlueTriggerCrawlerOperator; print('✅ All imports successful')"
-
-# Run unit tests only
 test-unit:
 	@echo "🧪 Running unit tests..."
-	python tests/test_mwaa_blogpost_data_pipeline.py
+	python -m pytest tests/test_mwaa_automation.py -v
+	python -m pytest tests/test_mwaa_blogpost_data_pipeline.py -v
+	@echo "✅ Unit tests completed"
 
-# Clean up temporary files
-clean:
-	@echo "🧹 Cleaning up..."
-	find . -type f -name "*.pyc" -delete
-	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	@echo "✅ Cleanup complete"
+test-integration:
+	@echo "🔗 Running integration tests..."
+	python -c "from tests.integration_test import run_integration_tests; run_integration_tests()"
+	@echo "✅ Integration tests completed"
 
-# Deploy to AWS (run validation first)
-deploy: validate
-	@echo "🚀 Deploying to AWS..."
-	@echo "📋 Pre-deployment checklist:"
-	@echo "   ✅ DAG validation passed"
-	@echo "   ⚠️  Make sure you have AWS credentials configured"
-	@echo "   ⚠️  Make sure you have the correct AWS account/region set"
-	@echo ""
-	@read -p "Continue with deployment? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
-	@echo "Installing dependencies..."
-	python3 -m venv .env || true
-	. .env/bin/activate && pip install -r requirements.txt
-	@echo "Updating AWS credentials..."
-	ada credentials update --account=$(DEV_ACCOUNT_ID) --provider=isengard --role=Admin --once
-	@echo "Bootstrapping CDK..."
-	. .env/bin/activate && cdk bootstrap --context region=us-west-2
-	@echo "Deploying stacks..."
-	. .env/bin/activate && cdk deploy --all --context region=us-west-2
-	@echo "🎉 Deployment complete!"
+test-dag:
+	@echo "🌊 Testing DAG syntax and imports..."
+	python tests/validate_dag.py
+	@echo "✅ DAG tests completed"
 
-# Quick validation (faster than full test suite)
+# Validation Commands
+lint:
+	@echo "🔍 Running code linting..."
+	@echo "Checking Python files with flake8..."
+	-flake8 --max-line-length=120 --ignore=E501,W503 cdk_mwaa_blogpost/ post_scripts/ tests/
+	@echo "Checking Python files with pylint..."
+	-pylint --disable=C0114,C0115,C0116 cdk_mwaa_blogpost/ post_scripts/
+	@echo "✅ Linting completed"
+
 validate:
-	@echo "⚡ Quick validation..."
-	@make test-syntax
-	@make test-imports
-	@echo "✅ Quick validation passed"
+	@echo "✅ Validating CDK templates and configuration..."
+	cdk synth --quiet > /dev/null
+	@echo "✅ CDK validation completed"
+
+validate-dag:
+	@echo "🌊 Validating Airflow DAG files..."
+	@python -c "\
+import sys; \
+sys.path.insert(0, 'assets/mwaa_dags/dags'); \
+from unittest.mock import patch; \
+try: \
+    with patch('airflow.models.Variable.get', return_value='test'): \
+        from scripts.mwaa_blogpost_data_pipeline import dag; \
+        print('✅ DAG import successful'); \
+        print(f'✅ DAG ID: {dag.dag_id}'); \
+        print(f'✅ Task count: {len(dag.tasks)}'); \
+except Exception as e: \
+    print(f'❌ DAG validation failed: {e}'); \
+    sys.exit(1)"
+	@echo "✅ DAG validation completed"
+
+# Build Commands
+build: check-deps lint test validate
+	@echo "🏗️  Building project..."
+	cdk synth --quiet
+	@echo "✅ Build completed successfully"
+	@echo "🚀 Ready for deployment!"
+
+synth:
+	@echo "🏗️  Synthesizing CDK templates..."
+	cdk synth
+	@echo "✅ CDK synthesis completed"
+
+# Deployment Commands
+deploy: build
+	@echo "🚀 Deploying MWAA workflow demo..."
+	@echo "⚠️  This will create AWS resources that may incur charges"
+	@read -p "Continue with deployment? [y/N] " confirm && [ "$$confirm" = "y" ]
+	cdk deploy --all --require-approval never
+	@echo "✅ Deployment completed!"
+	@echo "📋 Next steps:"
+	@echo "   1. Check MWAA environment status in AWS Console"
+	@echo "   2. Variables should be automatically loaded"
+	@echo "   3. DAGs should be automatically enabled"
+
+deploy-dry-run:
+	@echo "🔍 Showing deployment plan (dry run)..."
+	cdk diff --all
+
+destroy:
+	@echo "💥 Destroying all stacks..."
+	@echo "⚠️  This will delete all AWS resources created by this demo"
+	@read -p "Are you sure you want to destroy everything? [y/N] " confirm && [ "$$confirm" = "y" ]
+	cdk destroy --all --force
+
+# Utility Commands
+clean:
+	@echo "🧹 Cleaning build artifacts..."
+	rm -rf cdk.out/
+	rm -rf .pytest_cache/
+	rm -rf __pycache__/
+	find . -name "*.pyc" -delete
+	find . -name "*.pyo" -delete
+	find . -name "__pycache__" -type d -exec rm -rf {} +
+	rm -f post_scripts/mwaa_demo_variables.json
+	@echo "✅ Cleanup completed"
+
+check-deps:
+	@python scripts/check_deps.py
+
+check-python:
+	@echo "� Checking Python version..."
+	@python3 --version | grep -E "Python 3\.(8|9|10|11|12)" || (echo "❌ Python 3.8+ required" && exit 1)
+	@echo "✅ Python version OK"
+
+# Development workflow targets
+dev-setup: setup-env install
+	@echo "🎯 Development environment setup complete!"
+	@echo "💡 Run 'source .env/bin/activate' to activate virtual environment"
+
+pre-commit: lint test-unit validate-dag
+	@echo "✅ Pre-commit checks passed!"
+
+ci-test: install test validate
+	@echo "✅ CI tests completed!"
+
+# Quick commands for common workflows
+quick-test: test-unit validate-dag
+	@echo "⚡ Quick tests completed!"
+
+full-test: test
+	@echo "🎯 Full test suite completed!"
