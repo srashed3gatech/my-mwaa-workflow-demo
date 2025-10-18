@@ -69,37 +69,37 @@ def clean_mwaa_buckets(bucket_name):
 def cleanup_mwaa_resources():
     """Enhanced cleanup function for MWAA resources including environment deletion"""
     print("🧹 Starting MWAA resource cleanup...")
-    
+
     # Check for MWAA environment and delete it first
     try:
         # Look for MWAA environment in CloudFormation outputs
         mwaa_stack_name = "cdk-mwaa-environment"
-        
+
         try:
             mwaa_stack_response = cft_client.describe_stacks(StackName=mwaa_stack_name)
             mwaa_outputs = mwaa_stack_response["Stacks"][0]["Outputs"]
-            
+
             environment_name = None
             for output in mwaa_outputs:
                 if output["OutputKey"] == "mwaaenvironmentname":
                     environment_name = output["OutputValue"]
                     break
-            
+
             if environment_name:
                 print(f"Found MWAA environment: {environment_name}")
                 print("⚠️  MWAA environment deletion should be handled by CDK destroy")
             else:
                 print("No MWAA environment found in stack outputs")
-                
+
         except Exception as e:
             print(f"MWAA stack not found or error accessing: {e}")
-    
+
     except Exception as e:
         print(f"Error in MWAA cleanup: {e}")
-    
+
     # Continue with existing cleanup logic
     main()
-    
+
     print("✅ MWAA resource cleanup completed")
 
 

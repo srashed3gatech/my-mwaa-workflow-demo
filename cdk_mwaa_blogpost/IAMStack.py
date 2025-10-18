@@ -4,7 +4,6 @@
 from aws_cdk import (Stack,
                      CfnOutput,
                      aws_iam as iam,
-                     CustomResource,
                      custom_resources as cr
                      )
 from constructs import Construct
@@ -153,30 +152,30 @@ class IAMStack(Stack):
                                         'service-role/AmazonElasticMapReduceforEC2Role')]
                                 )
 
-        emr_ec2_role_instance_profile = iam.CfnInstanceProfile(self, id='EMR_EC2_InstanceProfile_MWAA',
-                                                               instance_profile_name='EMR_EC2_DefaultRole_MWAA',
-                                                               roles=[emr_ec2_role.role_name]
-                                                               )
+        iam.CfnInstanceProfile(self, id='EMR_EC2_InstanceProfile_MWAA',
+                               instance_profile_name='EMR_EC2_DefaultRole_MWAA',
+                               roles=[emr_ec2_role.role_name]
+                               )
 
         emr_s3_policy.attach_to_role(emr_role)
         emr_s3_policy.attach_to_role(emr_ec2_role)
 
         # Create Glue service role for crawler operations
         glue_crawler_role = iam.Role(self, id='GlueCrawlerRole_MWAA',
-                                    role_name='GlueCrawlerRole_MWAA',
-                                    assumed_by=iam.ServicePrincipal('glue.amazonaws.com'),
-                                    managed_policies=[
-                                        iam.ManagedPolicy.from_aws_managed_policy_name(
-                                            'service-role/AWSGlueServiceRole')]
-                                    )
+                                     role_name='GlueCrawlerRole_MWAA',
+                                     assumed_by=iam.ServicePrincipal('glue.amazonaws.com'),
+                                     managed_policies=[
+                                         iam.ManagedPolicy.from_aws_managed_policy_name(
+                                             'service-role/AWSGlueServiceRole')]
+                                     )
 
         # Attach S3 permissions to Glue crawler role
         emr_s3_policy.attach_to_role(glue_crawler_role)
 
         # Create EMR service-linked role for cleanup operations
         # This prevents the VALIDATION_ERROR that occurs when the role doesn't exist
-        emr_cleanup_role_provider = cr.AwsCustomResource(
-            self, 
+        cr.AwsCustomResource(
+            self,
             'EMRCleanupServiceLinkedRole',
             on_create=cr.AwsSdkCall(
                 service='IAM',
@@ -313,17 +312,17 @@ class IAMStack(Stack):
                                                 )
 
         CfnOutput(self,
-                       id='emr_jobflow_role',
-                       value=emr_ec2_role.role_name)
+                  id='emr_jobflow_role',
+                  value=emr_ec2_role.role_name)
 
         CfnOutput(self,
-                       id='emr_service_role',
-                       value=emr_role.role_name)
+                  id='emr_service_role',
+                  value=emr_role.role_name)
 
         CfnOutput(self,
-                       id='mwaa_policy',
-                       value=mwaa_airflow_policy.managed_policy_name)
+                  id='mwaa_policy',
+                  value=mwaa_airflow_policy.managed_policy_name)
 
         CfnOutput(self,
-                       id='glue_crawler_role',
-                       value=glue_crawler_role.role_arn)
+                  id='glue_crawler_role',
+                  value=glue_crawler_role.role_arn)

@@ -40,8 +40,8 @@ class VPCStack(Stack):
         # Outputs
         CfnOutput(self, 'vpc_id', value=vpc_mwaa.vpc_id)
         CfnOutput(self, 'emr_subnet_id',
-                       value=vpc_mwaa.select_subnets(subnet_group_name='mwaa_emr_subnet').subnet_ids[0])
+                  value=vpc_mwaa.select_subnets(subnet_group_name='mwaa_emr_subnet').subnet_ids[0])
         CfnOutput(self, 'mwaa_subnets_id_1',
-                       value=vpc_mwaa.select_subnets(subnet_group_name='mwaa_dag_subnet').subnet_ids[0])
+                  value=vpc_mwaa.select_subnets(subnet_group_name='mwaa_dag_subnet').subnet_ids[0])
         CfnOutput(self, 'mwaa_subnets_id_2',
-                       value=vpc_mwaa.select_subnets(subnet_group_name='mwaa_dag_subnet').subnet_ids[1])
+                  value=vpc_mwaa.select_subnets(subnet_group_name='mwaa_dag_subnet').subnet_ids[1])

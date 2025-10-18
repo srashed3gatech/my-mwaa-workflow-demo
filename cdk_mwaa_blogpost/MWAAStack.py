@@ -21,19 +21,19 @@ class MWAAStack(Stack):
         self.data_lake_stack = data_lake_stack
         self.iam_stack = iam_stack
         self.s3_buckets = data_lake_stack.buckets
-        
+
         # Get VPC from VPC stack
         self.vpc = self._get_vpc_from_stack()
-        
+
         # Create MWAA execution role
         self.mwaa_execution_role = self._create_mwaa_execution_role()
-        
+
         # Create security group for MWAA
         self.mwaa_security_group = self._create_mwaa_security_group()
-        
+
         # Create MWAA environment
         self.mwaa_environment = self._create_mwaa_environment()
-        
+
         # Add cleanup automation (placeholder for CDK custom resource)
         self.cleanup_automation = True  # This will be enhanced with actual custom resource
 
@@ -48,13 +48,13 @@ class MWAAStack(Stack):
         for child in self.vpc_stack.node.children:
             if isinstance(child, ec2.Vpc):
                 return child
-        
+
         # Fallback: use default VPC lookup
         return ec2.Vpc.from_lookup(self, 'DefaultVPC', is_default=False)
 
     def _create_mwaa_execution_role(self):
         """Create MWAA execution role with necessary permissions"""
-        
+
         # Create MWAA execution role
         mwaa_role = iam.Role(
             self, 'MWAAExecutionRole',
@@ -118,7 +118,7 @@ class MWAAStack(Stack):
         mwaa_role.add_to_policy(mwaa_s3_policy)
         mwaa_role.add_to_policy(logs_policy)
         mwaa_role.add_to_policy(mwaa_core_policy)
-        
+
         # Try to attach the existing MWAA policy from IAM stack if available
         try:
             existing_policy = iam.ManagedPolicy.from_managed_policy_name(
@@ -133,7 +133,7 @@ class MWAAStack(Stack):
 
     def _create_mwaa_security_group(self):
         """Create security group for MWAA"""
-        
+
         security_group = ec2.SecurityGroup(
             self, 'MWAASecurityGroup',
             vpc=self.vpc,
@@ -159,42 +159,42 @@ class MWAAStack(Stack):
 
     def _create_mwaa_environment(self):
         """Create MWAA environment"""
-        
+
         # Get private subnets for MWAA
         private_subnets = self.vpc.private_subnets
         if len(private_subnets) < 2:
             # Fallback to all subnets if not enough private subnets
             private_subnets = self.vpc.isolated_subnets + self.vpc.private_subnets
-        
+
         subnet_ids = [subnet.subnet_id for subnet in private_subnets[:2]]
 
         # MWAA Environment configuration
         mwaa_environment = mwaa.CfnEnvironment(
             self, 'MWAAEnvironment',
             name='mwaa-demo-environment',
-            
+
             # Airflow configuration
             airflow_version='3.0.6',
-            
+
             # S3 configuration
             source_bucket_arn=self.s3_buckets['mwaa_config'].bucket_arn,
             dag_s3_path='dags',
-            
+
             # Execution role
             execution_role_arn=self.mwaa_execution_role.role_arn,
-            
+
             # Network configuration
             network_configuration=mwaa.CfnEnvironment.NetworkConfigurationProperty(
                 subnet_ids=subnet_ids,
                 security_group_ids=[self.mwaa_security_group.security_group_id]
             ),
-            
+
             # Web server access
             webserver_access_mode='PUBLIC_ONLY',
-            
+
             # Environment class
             environment_class='mw1.small',
-            
+
             # Logging configuration
             logging_configuration=mwaa.CfnEnvironment.LoggingConfigurationProperty(
                 dag_processing_logs=mwaa.CfnEnvironment.ModuleLoggingConfigurationProperty(
@@ -218,7 +218,7 @@ class MWAAStack(Stack):
                     log_level='INFO'
                 )
             ),
-            
+
             # Airflow configuration options
             airflow_configuration_options={
                 'core.load_examples': 'False',

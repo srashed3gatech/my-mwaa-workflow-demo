@@ -247,12 +247,12 @@ with DAG(dag_id='mwaa_blogpost_data_pipeline', schedule='@once', default_args=de
         )
         emr_job_sensors_list.append(emr_spark_job_sensor)
 
-    glue_crawler_name = Variable.get('glue_crawler_name')
-
+    # Use Variable.get with default value to avoid import-time failures
+    # This allows the DAG to be imported even when variables are not yet configured
     run_glue_crawler = GlueTriggerCrawlerOperator(
         task_id='run_glue_crawler',
         aws_conn_id='aws_default',
-        crawler_name=glue_crawler_name
+        crawler_name='{{ var.value.glue_crawler_name }}'  # Use template instead of import-time access
     )
 
     query_athena_results = AthenaOperator(

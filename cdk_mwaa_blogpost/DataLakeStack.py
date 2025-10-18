@@ -27,8 +27,8 @@ class DataLakeStack(Stack):
                                                        removal_policy=RemovalPolicy.DESTROY
                                                        )
             CfnOutput(self,
-                           id=f'{bucket_name}_bucket',
-                           value=bucket_constructs[bucket_name].bucket_name)
+                      id=f'{bucket_name}_bucket',
+                      value=bucket_constructs[bucket_name].bucket_name)
 
         s3_deployment.BucketDeployment(self, id='upload_dag',
                                        sources=[s3_deployment.Source.asset('./assets/mwaa_dags/')],
@@ -57,12 +57,12 @@ class DataLakeStack(Stack):
         write_to_s3_policy = iam.PolicyDocument(statements=[statement])
 
         glue_role = iam.Role(self, id='AWSGlueServiceRole-mwaa-demo-crawler',
-                     role_name='AWSGlueServiceRole-mwaa-demo-crawler',
-                     inline_policies={'write_to_s3': write_to_s3_policy},  # Pass as dictionary instead of list
-                     assumed_by=iam.ServicePrincipal('glue.amazonaws.com'),
-                     managed_policies=[
-                         iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSGlueServiceRole')
-                     ])
+                             role_name='AWSGlueServiceRole-mwaa-demo-crawler',
+                             inline_policies={'write_to_s3': write_to_s3_policy},
+                             assumed_by=iam.ServicePrincipal('glue.amazonaws.com'),
+                             managed_policies=[
+                                 iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSGlueServiceRole')
+                             ])
 
         # https://github.com/aws/aws-cdk/issues/13242
         glue_crawler = glue.CfnCrawler(self, id='glue_crawler_mwaa',
@@ -79,12 +79,12 @@ class DataLakeStack(Stack):
 
         # Outputs
         CfnOutput(self,
-                       id='glue_database_name',
-                       value=glue_database.database_input.name)
+                  id='glue_database_name',
+                  value=glue_database.database_input.name)
 
         CfnOutput(self,
-                       id='glue_crawler_name',
-                       value=glue_crawler.name)
+                  id='glue_crawler_name',
+                  value=glue_crawler.name)
 
     @property
     def get_buckets(self):
